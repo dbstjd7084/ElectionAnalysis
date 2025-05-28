@@ -6,6 +6,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import time
+from news_api import get_naver_news_smart
 
 # 페이지 설정
 st.set_page_config(
@@ -25,6 +26,7 @@ candidate_info = st.session_state["selected_candidate"]
 candidate_name = candidate_info["name"]
 candidate_party = candidate_info["party"]
 candidate_color = candidate_info["color"]
+candidate_num = candidate_info["num"]
 
 # CSS 스타일링
 st.markdown("""
@@ -296,55 +298,24 @@ with col3:
         st.metric("중립", f"{neutral}%", f"+{np.random.randint(0, 2)}%")
 
 with col4:
-    # 관련 뉴스 섹션
     st.markdown("## 📰 최근 뉴스 기사")
-    
-    # 모의 뉴스 데이터
-    news_data = [
-        {
-            "title": f"{candidate_name} 후보, 핵심 공약 발표",
-            "description": f"{candidate_name} 후보가 오늘 기자회견을 통해 핵심 공약을 발표했습니다.",
-            "date": "2025-05-27",
-            "source": "정치뉴스"
-        },
-        {
-            "title": f"{candidate_name} 후보 지지율 상승세",
-            "description": f"최근 여론조사에서 {candidate_name} 후보의 지지율이 상승하는 것으로 나타났습니다.",
-            "date": "2025-05-26",
-            "source": "선거뉴스"
-        },
-        {
-            "title": f"{candidate_name} 후보, 시민과의 대화",
-            "description": f"{candidate_name} 후보가 시민들과 직접 만나 정책을 설명하는 시간을 가졌습니다.",
-            "date": "2025-05-25",
-            "source": "지역뉴스"
-        },
-        {
-            "title": f"{candidate_name} 후보 경제정책 공개",
-            "description": f"{candidate_name} 후보가 새로운 경제정책 방안을 제시했습니다.",
-            "date": "2025-05-24",
-            "source": "경제뉴스"
-        },
-        {
-            "title": f"{candidate_name} 후보 토론회 참석",
-            "description": f"{candidate_name} 후보가 주요 정책 토론회에 참석해 소신을 밝혔습니다.",
-            "date": "2025-05-23",
-            "source": "정치뉴스"
-        }
-    ]
-    
-    # 뉴스 카드 표시
-    for news in news_data:
-        st.markdown(f"""
-        <div class="news-card">
-            <h4 style="color: {candidate_color}; margin-bottom: 8px;">{news['title']}</h4>
-            <p style="color: #666; margin-bottom: 8px;">{news['description']}</p>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <small style="color: #999;">{news['source']}</small>
-                <small style="color: #999;">{news['date']}</small>
+    news_data = get_naver_news_smart(candidate_name, candidate_party, candidate_num, max_results=5)
+    if news_data:
+        for news in news_data:
+            st.markdown(f"""
+            <div class="news-card">
+                <h4 style="color: {candidate_color}; margin-bottom: 8px;">
+                    <a href="{news['link']}" target="_blank" style="color: {candidate_color}; text-decoration: none;">{news['title']}</a>
+                </h4>
+                <p style="color: #666; margin-bottom: 8px;">{news['description']}</p>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <small style="color: #999;">{news['date']}</small>
+                    <a href="{news['link']}" target="_blank" style="color: #888; font-size: 0.92rem;">원문보기</a>
+                </div>
             </div>
-        </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
+    else:
+        st.info("최근 한 달간 주요 뉴스 기사가 없습니다.")
 
 # 푸터
 st.markdown("---")

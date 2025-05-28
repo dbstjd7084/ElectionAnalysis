@@ -14,37 +14,43 @@ candidates = [
         "name": "이재명", 
         "image": "https://cdn.nec.go.kr/photo_20250603/Gsg1/Hb100153692/gicho/thumbnail.100153692.JPG",
         "party": "더불어민주당",
-        "color": "#1f77b4"
+        "color": "#1f77b4",
+        "num": 1
     },
     {
         "name": "김문수", 
         "image": "https://cdn.nec.go.kr/photo_20250603/Gsg1/Hb100153710/gicho/thumbnail.100153710.JPG",
         "party": "국민의힘",
-        "color": "#d62728"
+        "color": "#d62728",
+        "num": 2
     },
     {
         "name": "이준석", 
         "image": "https://cdn.nec.go.kr/photo_20250603/Gsg1/Hb100153689/gicho/thumbnail.100153689.JPG",
         "party": "개혁신당",
-        "color": "#ff7f0e"
+        "color": "#ff7f0e",
+        "num": 4
     },
     {
         "name": "권영국", 
         "image": "https://cdn.nec.go.kr/photo_20250603/Gsg1/Hb100153725/gicho/thumbnail.100153725.JPG",
         "party": "민주노동당",
-        "color": "#dbdd47"
+        "color": "#dbdd47",
+        "num": 5
     },
     {
         "name": "황교안", 
         "image": "https://cdn.nec.go.kr/photo_20250603/Gsg1/Hb100153708/gicho/thumbnail.100153708.JPG",
         "party": "무소속",
-        "color": "#a3a3a3"
+        "color": "#a3a3a3",
+        "num": 7
     },
     {
         "name": "송진호", 
         "image": "https://cdn.nec.go.kr/photo_20250603/Gsg1/Hb100153722/gicho/thumbnail.100153722.JPG",
         "party": "무소속",
-        "color": "#a3a3a3"
+        "color": "#a3a3a3",
+        "num": 8
     },
 ]
 
