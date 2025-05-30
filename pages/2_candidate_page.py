@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import time
 from news_api import get_naver_news_smart
+import google.generativeai as genai
 
 # 페이지 설정
 st.set_page_config(
@@ -27,6 +28,8 @@ candidate_name = candidate_info["name"]
 candidate_party = candidate_info["party"]
 candidate_color = candidate_info["color"]
 candidate_num = candidate_info["num"]
+candidate_image = candidate_info["image"]
+
 
 # CSS 스타일링
 st.markdown("""
@@ -105,55 +108,64 @@ if st.button("🏠 홈페이지로 돌아가기", type="secondary"):
 col1, col2 = st.columns([2, 1], gap="medium")
 
 with col1:
+    import streamlit as st
+    from utils.embedding import get_embedding
+    from utils.faiss_index import load_faiss_index, search_faiss_index
+    from utils.gemini_chat import generate_response
+    from utils.name_map import NAME_MAP
+
+    # 후보 정보
+    candidate_name = st.session_state["selected_candidate"]["name"]
+    eng_name = NAME_MAP[candidate_name]
+    candidate_image = st.session_state["selected_candidate"]["image"]
+    index_path = f"embeddings/faiss/{eng_name}.index"
+    index, ids = load_faiss_index(index_path)
+
     st.markdown("## 🤖 AI 챗봇과 대화하기")
-    
-    # 초기 안내(채팅 위 고정, 채팅창과 별개!)
-    st.markdown(f"""
-    <div style="margin-bottom: 16px; background: rgba(255,255,255,0.8); border-radius: 8px; padding: 12px 18px;">
-        <b>안내</b>: <span style="color: #333;">
-        안녕하세요! 저는 <b>{candidate_name}</b> 후보입니다.<br>
-        제 정책이나 공약에 대해 궁금한 것이 있으시면 언제든 물어보세요!
-        </span>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    with st.container():
-        st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-        
-        # 사용자 입력
-        user_input = st.chat_input(f"{candidate_name} 후보자에게 질문해보세요!")
 
-        ai_response = None
+    if st.session_state.last_chat:
+        # 유저 질문
+        user_input = st.session_state.last_chat["user"]
+        st.markdown(f"""
+        <div style="display: flex; align-items: flex-start; margin-bottom: 24px;">
+            <div style="width: 150px; height: 150px; border-radius: 50%; background: #e5e5e5; text-align: center; line-height: 150px; font-size: 6rem; margin-right: 20px;">
+                🙍
+            </div>
+            <div style="background: #f0f2fa; border-radius: 14px; padding: 24px 26px; max-width: 650px;">
+                {user_input}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
-        # "로딩" 메시지는 채팅 내역과 겹치지 않게 spinner로만 사용
-        if user_input:
-            with st.spinner("답변을 생성하고 있습니다..."):
-                time.sleep(1)
-                responses = {
-                    "경제": f"저는 {candidate_name}으로서 경제 성장과 일자리 창출을 최우선 과제로 생각합니다. 특히 중소기업 지원과 혁신산업 육성에 집중하겠습니다.",
-                    "교육": f"교육은 국가의 미래입니다. 저는 모든 학생이 평등한 교육 기회를 가질 수 있도록 교육 시스템을 개선하겠습니다.",
-                    "복지": f"사회적 약자를 보호하고 모든 국민이 행복한 삶을 살 수 있도록 복지 정책을 확대하겠습니다.",
-                    "환경": f"지속가능한 미래를 위해 환경 보호와 탄소 중립 정책을 적극 추진하겠습니다.",
-                    "안보": f"국가 안보는 타협할 수 없는 영역입니다. 강력한 국방력을 바탕으로 평화를 지키겠습니다."
-                }
-                ai_response = f"안녕하세요, {candidate_name}입니다. "
-                for keyword, response in responses.items():
-                    if keyword in user_input:
-                        ai_response = response
-                        break
-                else:
-                    ai_response += f"좋은 질문입니다. 제가 {candidate_party} 소속으로서 이 문제에 대해 깊이 고민하고 있습니다. 구체적인 정책은 저의 10대 공약을 참고해주세요."
-        
-        # --- 채팅 내역 표시 구간 ---
-        if user_input:
-            st.chat_message("user").write(user_input)
-            st.chat_message("assistant", avatar="🎤").write(ai_response)
-        else:
-            # "공란" 유지: 아무 메시지도 띄우지 않음!
-            pass
-        
-        st.markdown('</div>', unsafe_allow_html=True)
+        # 후보 답변
+        answer = st.session_state.last_chat["assistant"].replace('**', '').replace('<div>', '').replace('</div>', '')
+        st.markdown(f"""
+        <div style="display: flex; align-items: flex-start; margin-bottom: 24px;">
+            <img src="{candidate_image}" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; margin-right: 20px; border: 3px solid #aaa;">
+            <div style="background: #fff; border-radius: 14px; padding: 24px 26px; max-width: 650px; border-left: 6px solid #6a4cd4;">
+                {answer}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
+
+    # (2) 입력창은 항상 맨 아래에
+    user_input = st.chat_input(f"{candidate_name} 후보자에게 질문해보세요!")
+    if user_input:
+        with st.spinner("답변을 생성하고 있습니다..."):
+            query_embedding = get_embedding(user_input)
+            top_indices = search_faiss_index(index, query_embedding)
+            context = "\n".join([ids[i] for i in top_indices])
+            response = generate_response(candidate_name, user_input, context)
+            # 불필요 태그/별표/HTML 정제
+            response = response.replace('**', '').replace('<div>', '').replace('</div>', '').strip()
+
+        # 직전 대화만 저장 (이전 것은 사라짐)
+        st.session_state.last_chat = {"user": user_input, "assistant": response}
+        st.rerun()  # 새로운 입력 시 대화 갱신
+    else:
+        # 페이지 새로고침/재진입 시에도 항상 1세트만 보이게
+        pass
 
 with col2:
     # 10대 공약 섹션

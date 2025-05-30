@@ -146,6 +146,7 @@ for idx, candidate in enumerate(candidates):
 
         if st.button(f"{candidate['name']} 후보 분석", key=f"btn_{idx}", use_container_width=True):
             st.session_state["selected_candidate"] = candidate
+            st.session_state.last_chat = None
             st.switch_page("pages/2_candidate_page.py")
 
 
